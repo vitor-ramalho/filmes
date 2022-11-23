@@ -1,26 +1,50 @@
-import { Controller, Get, Param, Post, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Post,
+  Req,
+  Body,
+  ParseIntPipe,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Request } from 'express';
 import { Movie } from './movie.entity';
+import { MovieService } from './movie.service';
+import { CreateMovieDto } from './dto/create-movie.dto';
+import { JwtGuard } from 'src/auth/guard/jwt.guard';
 
 @Controller('movie')
 export class MovieController {
-  constructor(
-    @InjectRepository(Movie) private movieRepository: Repository<Movie>,
-  ) {}
+  constructor(private movieService: MovieService) {}
+
+  @UseGuards(JwtGuard)
   @Post()
-  async add(@Req() request: Request) {
-    return this.movieRepository.save({
-      ownerId: 1,
-      title: request.body['title'],
-      description: request.body['title'],
-      genre: request.body['genre'],
-    });
+  async add(@Body() createMovieDto: CreateMovieDto) {
+    return this.movieService.add(createMovieDto);
+  }
+
+  @Get()
+  findAll(): Promise<Movie[]> {
+    return this.movieService.findAll();
   }
 
   @Get(':id')
-  findAll(@Param('id') id): Promise<Movie[]> {
-    return this.movieRepository.find({ where: { ownerId: 1 } });
+  findOne(@Param('id', ParseIntPipe) id: number): Promise<Movie> {
+    return this.movieService.findOne(id);
+  }
+
+  @Get('byTitle/:title')
+  findByTitle(@Param('title') title: string): Promise<Movie> {
+    return this.movieService.findByTitle(title);
+  }
+
+  @UseGuards(JwtGuard)
+  @Delete(':id')
+  remove(@Param('id', ParseIntPipe) id: number): Promise<string> {
+    return this.movieService.remove(id);
   }
 }
